@@ -1,0 +1,189 @@
+#include<bits/stdc++.h>
+using namespace std;
+
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+using namespace __gnu_pbds;
+#define ordered_set tree<int, null_type,less_equal<int>, rb_tree_tag,tree_order_statistics_node_update>
+
+#define ll long long
+
+mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
+inline ll gen_random(ll l, ll r) {
+    return uniform_int_distribution<ll>(l, r)(rng);
+}
+
+#define test cout<<"Test_Round\n"
+#define pb push_back
+#define pi pair<int,int>
+#define pii pair<ll,ll>
+#define all(x) x.begin(),x.end()
+#define rsort(x) sort(x.rbegin(),x.rend())
+#define fastio  ios_base::sync_with_stdio(false),cin.tie(NULL)
+#define ull unsigned long long
+#define db double
+#define pai acos(-1)
+#define bitcheck(n,k) ((n&(1ll<<k))>0ll)
+#define ff first
+#define ss second
+
+bool primecheck(ll x) {
+    if (x == 1)return 0;
+    for (ll i = 2; i * i <= x; i++)if (x % i == 0)return 0; return 1;
+}
+
+template<typename type>
+void show(vector<type>&a) {
+    int N = a.size();
+    for (int i = 0; i < N; i++) {
+        cout << a[i] << " ";
+    } cout << "\n";
+}
+
+
+const int N = 1e5 + 2;
+
+vector<int>v[N], virtual_tree[N];
+int l[N], up[N][20], in[N], out[N];
+bool vs[N], important[N], save[N];
+int cnt = 0;
+
+void dfs(int n, int p) {
+    l[n] = l[p] + 1;
+    up[n][0] = p;
+    in[n] = ++cnt;
+    for (int i = 1; i <= 19; i++) {
+        up[n][i] = up[up[n][i - 1]][i - 1];
+    }
+    for (auto it : v[n]) {
+        if (it == p)continue;
+        dfs(it, n);
+    }
+    out[n] = cnt;
+}
+bool upper(int a, int b) {
+    return (in[a] <= in[b] and out[a] >= out[b]) or a==0;
+}
+int find_lca(int a, int b) {
+    if (a == b)return a;
+    if (l[a] < l[b])swap(a, b);
+    for (int i = 19; i >= 0; i--) {
+        if (!upper(up[a][i], b)) {
+            a = up[a][i];
+        }
+    }
+    return up[a][0];
+}
+bool cmp(int a, int b) {
+    return in[a] < in[b];
+}
+
+ll Ans = 0;
+
+void dfs_of_virtual_tree(int n, int p = -1) {
+    int x = important[n];
+    int y = 0;
+    for (auto it : virtual_tree[n]) {
+        int dif = l[it] - l[n];
+        if (important[n] and important[it] and dif == 1) {
+            Ans = -1e10;
+            return;
+        }
+        dfs_of_virtual_tree(it, n);
+        y += save[it];
+        if (x and save[it])Ans++;
+    }
+    if (x) save[n] = 1;
+    else {
+        if (y > 1) Ans++;
+        else if (y == 1)save[n] = 1;
+    }
+}
+
+
+ll solve(int root) {
+    Ans = 0;
+    dfs_of_virtual_tree(root);
+    return Ans;
+}
+
+ll solve(vector<int>&now) {
+    vector<int>ex;
+    
+    for (int i = 1; i < now.size(); i++) {
+        int lca = find_lca(now[i - 1], now[i]);
+        if (!important[lca])
+            ex.pb(lca);
+    }
+    sort(all(ex));
+    ex.erase(unique(all(ex)), ex.end());
+    while (ex.size()) {
+        now.pb(ex.back());
+        ex.pop_back();
+    }
+    sort(all(now), cmp);
+    vector<int>stack;
+    stack.pb(now[0]);
+    for (int i = 1; i < now.size(); i++) {
+        while (stack.size() >= 2 and !upper(stack.back(), now[i])) {
+            virtual_tree[stack[(int)stack.size() - 2]].pb(stack.back());
+            stack.pop_back();
+        }
+        stack.pb(now[i]);
+    }
+    int root = 0;
+    while (stack.size() >= 2) {
+        virtual_tree[stack[(int)stack.size() - 2]].pb(stack.back());
+        stack.pop_back();
+    }
+    root = stack[0];
+    ll ans = solve(root);
+
+    for (auto it : now) {
+        virtual_tree[it].clear();
+        save[it] = 0;
+    }
+    if (ans < 0)ans = -1;
+    return ans;
+}
+
+void solve() {
+
+    int n;
+    cin >> n;
+    for (int i = 1; i < n; i++) {
+        int x, y;
+        cin >> x >> y;
+        v[x].pb(y);
+        v[y].pb(x);
+    }
+    dfs(1, 0);
+    int q;
+    cin >> q;
+    for (int i = 1; i <= q; i++) {
+        int k;
+        cin >> k;
+        vector<int>now;
+        for (int j = 0; j < k; j++) {
+            int x;
+            cin >> x;
+            now.pb(x);
+            important[x] = 1;
+        }
+        sort(all(now), cmp);
+        cout << solve(now) << '\n';
+        for (auto it : now) {
+            important[it] = 0;
+        }
+    }
+}
+int main() {
+    fastio;
+    // freopen("input.txt", "r", stdin);
+    // freopen("output.txt", "w", stdout);
+    int t = 1; //cin >> t;
+    while (t--) {
+        solve();
+    }
+}
+//https://codeforces.com/contest/613/problem/D
