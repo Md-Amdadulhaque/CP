@@ -1,0 +1,62 @@
+#include <bits/stdc++.h>
+using namespace std;
+
+int main () {
+	ios_base::sync_with_stdio(0); cin.tie(0);
+	int n, m;
+	cin >> n >> m;
+	vector<vector<pair<int, int>>> G(n);
+	vector<pair<int, int>> edges(m);
+	vector<string> ans(m);
+
+	for (int i = 0; i < m; i++) {
+		int u, v;
+		cin >> u >> v;
+		u--, v--;
+		edges[i] = {u, v};
+		G[u].emplace_back(v, i);
+		G[v].emplace_back(u, i);
+	}
+
+	vector<int> vis(n), used(m);
+
+	auto dfs = [&] (auto && self, int v, int p, int idx) -> void {
+		vis[v] = 1;
+
+		for (auto& [u, i] : G[v]) {
+			if (i == idx || vis[u]) continue;
+			self(self, u, v, i);
+		}
+		
+		vector<int> opts;
+
+		for (auto& [u, i] : G[v]) {
+			if (i == idx || used[i]) continue;
+			opts.emplace_back(i);
+		}
+		if (idx != -1 && opts.size() % 2) {
+			opts.emplace_back(idx);
+		}
+		for (int i = 0; i + 1 < (int)opts.size(); i += 2) {
+			int a = opts[i], b = opts[i + 1];
+			if (a > b) swap(a, b);
+			string mea = (edges[a].first == v ? "x" : "y");
+			string meb = (edges[b].first == v ? "x" : "y");
+			ans[a] = mea + "+";
+			ans[b] = meb + "-";
+			used[a] = used[b] = 1;
+		}
+		if (idx == -1 && opts.size() % 2) {
+			int a = opts.back();
+			ans[a] = "x+";
+			used[a] = 1;
+		}
+	};
+
+	for (int i = 0; i < n; i++) {
+		if (!vis[i]) dfs(dfs, i, -1, -1);
+	}
+
+	for (auto& s : ans) cout << s << '\n';
+}
+//https://codeforces.com/contest/2025/submission/287252097
